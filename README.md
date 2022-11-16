@@ -25,3 +25,7 @@ ACTIONS:
     ScrapeMessages
     PurgeMessages
     JoinGuild
+    
+Coming Soon
+-----------
+LeaveGuild
