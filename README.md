@@ -1,6 +1,6 @@
 # discord-api-lib
 A discord library made for easily interacting with discord's API in order to mess around with a user.
-
+```python
 Currently supported features
 ----------------------------
 GET:
@@ -29,3 +29,4 @@ ACTIONS:
 Coming Soon
 -----------
 LeaveGuild
+```
