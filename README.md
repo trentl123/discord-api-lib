@@ -26,7 +26,8 @@ ACTIONS:
     PurgeMessages
     JoinGuild
     
-Coming Soon
------------
-LeaveGuild
+Planned features
+----------------
+ACTIONS:
+    LeaveGuild
 ```
