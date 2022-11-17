@@ -14,9 +14,10 @@ GET:
     Id
     Email
 SET:
-    Email
-    Name
-    Bio
+    SetEmail
+    SetName
+    SetBio
+    SetHypesquad
 ACTIONS:
     MakeRequest
     AddFriend
@@ -25,8 +26,10 @@ ACTIONS:
     ScrapeMessages
     PurgeMessages
     JoinGuild
+    LeaveGuild
     
 Planned features
 ----------------
-ACTIONS:
+SET:
+    SetStatus
 ```
