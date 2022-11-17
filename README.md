@@ -29,5 +29,4 @@ ACTIONS:
 Planned features
 ----------------
 ACTIONS:
-    LeaveGuild
 ```
