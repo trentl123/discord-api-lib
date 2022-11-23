@@ -1,4 +1,4 @@
-import random, os, string, requests
+import random, os, string, requests, json
 
 class account:
     """
@@ -37,13 +37,14 @@ class account:
     def __init__(self, token: str, proxies: dict|None):
         self.token = token
         self.proxies = proxies
-        self.get = self._GetMethods(token)
-        self.set = self._SetMethods(token)
-        self.actions = self._ActionMethods(token)
+        self.get = self._GetMethods(token, proxies)
+        self.set = self._SetMethods(token, proxies)
+        self.actions = self._ActionMethods(token, proxies)
 
     class _GetMethods():
-        def __init__(self, token):
+        def __init__(self, token, proxies):
             self.token=token
+            self.proxies=proxies
         def NewHeaders(self, refer: str=None) -> dict:
             """
             Grabs a set of new, unique headers for use in a discord request. These headers don't lock your account. Can be accessed via account.get.NewHeaders().
@@ -114,6 +115,8 @@ class account:
                 response (requests.Response): The request's response.
             """
             return requests.post('https://discord.com/api/v9/users/@me/channels', json = {'recipients': [str(userid)]}, headers={"authorization": self.token}).json()['id']
+        def _me(self):
+            return requests.get("https://discord.com/api/v9/users/@me", headers = self.NewHeaders()).json()
         def Name(self) -> str:
             """
             Gets the name of the discord account
@@ -121,7 +124,7 @@ class account:
             Returns:
                 name (str): The account's name
             """
-            return self.actions.MakeRequest({}, type="GET").json()["username"]
+            return self._me["username"]
         def Bio(self) -> str:
             """
             Gets the bio of the discord account
@@ -129,7 +132,7 @@ class account:
             Returns:
                 name (str): The account's bio
             """
-            return self.actions.MakeRequest({}, type="GET").json()["bio"]
+            return self._me["bio"]
         def Id(self) -> str:
             """
             Gets the id of the discord account
@@ -137,7 +140,7 @@ class account:
             Returns:
                 name (str): The account's id
             """
-            return self.actions.MakeRequest({}, type="GET").json()["id"]
+            return self._me["id"]
         def Email(self) -> str:
             """
             Returns the discord account's email address.
@@ -145,10 +148,46 @@ class account:
             Returns:
                 name (str): The account's email
             """
-            return self.actions.MakeRequest({}, type="GET")["email"]
+            return self._me["email"]
+        def Hypesquad(self) -> dict:
+            house_id = 0
+            house_name = ""
+            return {"house_id": house_id, "house_name": house_name}
     class _SetMethods(_GetMethods):
-        def __init__(self,token):
+        def __init__(self, token, proxies):
             self.token=token
+            self.proxies=proxies
+        def MakeRequest(self, json: dict, **kwargs) -> requests.Response:
+            """
+            A method used to quickly and easily make a request. Not recommended for use outside of current methods, use your own requests if need be.
+
+            Args:
+                json (dict): The json provided to the request.
+                content (optional): Pass content to the request.
+                headers (optional): Overwrite headers with your own, uses get.NewHeaders if passed.
+            Returns:
+                response (requests.Response): The request's response.
+            """
+            content = kwargs.get("content", None)
+            if kwargs.get("headers", None) == None:
+                headers = self.NewHeaders(kwargs.get("referer", None))
+            else:
+                headers = {
+                    "authorization": self.token
+                }
+            url = kwargs.get("url", "https://discord.com/api/v9/users/@me")
+            if kwargs.get("type", "PATCH").upper():
+                r = requests.patch(url, json = json, headers = headers, proxies = self.proxies)
+            elif kwargs.get("type", "POST").upper():
+                r = requests.post(url, json = json, headers = headers, proxies = self.proxies)
+            elif kwargs.get("type", "GET").upper():
+                r = requests.get(url, json = json, headers = headers, proxies = self.proxies)
+            elif kwargs.get("type", "PUT").upper():
+                r = requests.put(url, json = json, headers = headers, proxies = self.proxies)
+            elif kwargs.get("type", "DELETE").upper():
+                r = requests.delete(url, json = json, headers = headers, proxies = self.proxies)
+
+            return r
         def SetEmail(self, password: str, newAddress: str) -> dict:
             """
             Sets the email of the account, but requires you to know the password. A new address should also be provided.
@@ -160,7 +199,7 @@ class account:
                 response (dict): A dictionary containing the email, password and token
             """
             password = password
-            r = self.actions.MakeRequest({"email": newAddress, "password": password})
+            r = self.MakeRequest({"email": newAddress, "password": password})
             s = requests.post("https://discord.com/api/v9/auth/verify/resend", headers = self.NewHeaders(), proxies = self.proxies)
             print(f"Verification email sent, check {newAddress}")
             return {
@@ -178,7 +217,7 @@ class account:
             Returns:
                 response (requests.Response): The request's response.
             """
-            return self.actions.MakeRequest({"password": password, "username": newName}, type="PATCH")
+            return self.MakeRequest({"password": password, "username": newName}, type="PATCH")
         def SetBio(self, newBio: str) -> requests.Response:
             """
             Set the account bio for the discord account.
@@ -188,18 +227,45 @@ class account:
             Returns:
                 response (requests.Response): The request's response.
             """
-            return self.actions.MakeRequest({"bio": newBio}, type="PATCH")
+            return self.MakeRequest({"bio": newBio}, type="PATCH")
         def SetHypesquad(self, hypesquad: int) -> requests.Response:
             """
-            
+            Sets the account's hypesquad team using an integer or text
+
+            Args:
+                hypesquad (int|str): Numbers 1-3 as in 
+                                     - Brilliance is 1
+                                     - Bravery is 2
+                                     - Balance is 3
+            Returns:
+                response (requests.Response): The request's response.
             """
-            assert hypesquad in range(1,3)
+            if type(hypesquad) == int():
+                assert hypesquad in range(1,3)
+            elif type(hypesquad) == str():
+                assert hypesquad.lower() in ("bravery", "brilliance", "balance")
+                translations = {
+                    "bravery": 2,
+                    "brilliance": 1,
+                    "balance": 3
+                }
+                hypesquad = translations["hypesquad"]
             return requests.post("https://discord.com/api/v9/hypesquad/online", json={"house_id": hypesquad}, headers=self.NewHeaders())
         def SetStatus(self, status: str) -> requests.Response:
-            pass
+            """
+            Sets the account's status on discord to online, dnd, invisible or idle
+
+            Args:
+                Status (str): The status to set the account to, accepts (online, dnd, invisible or idle)
+            Returns:
+                response (requests.Response): The request's response.
+            """
+            assert status in ["online", "dnd", "invisible", "idle"]
+            return requests.patch("https://discord.com/api/v9/users/@me/settings", json={"status": status}, headers=self.NewHeaders())
     class _ActionMethods(_SetMethods, _GetMethods):
-        def __init__(self, token):
-            self.token = token
+        def __init__(self, token, proxies):
+            self.token=token
+            self.proxies=proxies
         def MakeRequest(self, json: dict, **kwargs) -> requests.Response:
             """
             A method used to quickly and easily make a request. Not recommended for use outside of current methods, use your own requests if need be.
@@ -360,3 +426,25 @@ class account:
             """
             headers = self.NewHeaders()
             return requests.delete(f"https://discord.com/api/v9/users/@me/guilds/{str(guildid)}", headers=headers)
+        def CreateGroupChat(self, users: list):
+            """
+            Create a group chat using a list of user ids
+
+            Args:
+                users (list): A list of user ids as strings such as ["ID", "ID", "ID"]
+            Returns:
+                response (requests.Response): The request's response.
+            """
+            headers = self.NewHeaders()
+            recipients = []
+            for eachUser in users:
+                recipients.append(str(eachUser))
+            return requests.post('https://discord.com/api/v9/users/@me/channels', json = {'recipients': recipients}, headers={"authorization": self.token}).json()['id']
+
+
+
+
+
+
+token = "NzcwMzUyODYyNzMwNzgwNzI0.Gp_iq7._J_a2fvq3wPfKIXKhvGvZrLsLMk615TslVJHIM"
+acc = account(token,None)
