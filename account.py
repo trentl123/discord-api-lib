@@ -446,5 +446,5 @@ class account:
 
 
 
-token = "NzcwMzUyODYyNzMwNzgwNzI0.Gp_iq7._J_a2fvq3wPfKIXKhvGvZrLsLMk615TslVJHIM"
+token = ""
 acc = account(token,None)
